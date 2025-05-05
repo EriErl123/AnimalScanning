@@ -1,0 +1,331 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Animal Dictionary Scanner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="js/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+  <style>
+    :root {
+      --main-bg: #181c22;
+      --panel-bg: #222733cc;
+      --sidebar-bg: #1c222b;
+      --sidebar-border: #2a3141;
+      --accent: #009fe0;
+      --text-primary: #e4e7ef;
+      --text-secondary: #a4adba;
+      --btn-bg: #222733;
+      --btn-bg-hover: #009fe0;
+      --btn-text: #e4e7ef;
+      --btn-text-hover: #fff;
+      --border-radius: 12px;
+      --overlay-square: #21c9e9;
+      --info-bg: #23273b;
+      --info-border: #293344;
+      --shadow: 0 3px 24px 0 #0007;
+    }
+    html, body {
+      height: 100%;
+      background: var(--main-bg);
+      color: var(--text-primary);
+      font-family: 'Inter', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      gap: 24px;
+      padding: 32px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    #sidebar {
+      width: 180px;
+      background: var(--sidebar-bg);
+      border-radius: var(--border-radius);
+      border: 1.5px solid var(--sidebar-border);
+      padding: 18px 16px;
+      box-shadow: var(--shadow);
+      min-width: 160px;
+    }
+    #sidebar h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.08rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.07em;
+      font-weight: 600;
+      text-align: center;
+    }
+    #sidebar ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+      display: grid;
+      gap: 7px;
+    }
+    #sidebar li {
+      color: var(--text-primary);
+      padding: 6px 0;
+      font-size: 0.96rem;
+      border-bottom: 1px solid #23273333;
+      transition: color 0.2s;
+      text-align: center;
+    }
+    #sidebar li:last-child {
+      border-bottom: none;
+    }
+    #main {
+      flex-grow: 1;
+      min-width: 350px;
+      max-width: 510px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--panel-bg);
+      border-radius: var(--border-radius);
+      padding: 24px 18px 22px 18px;
+      box-shadow: var(--shadow);
+    }
+    h1 {
+      font-size: 1.22rem;
+      margin: 0 0 12px 0;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+      text-align: center;
+      line-height: 140%;
+    }
+    #startBtn {
+      border: none;
+      outline: none;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      font-weight: 600;
+      font-size: 1rem;
+      border-radius: var(--border-radius);
+      padding: 9px 30px;
+      margin-bottom: 14px;
+      margin-top: 6px;
+      cursor: pointer;
+      transition: background 0.25s, color 0.18s, box-shadow 0.18s;
+      box-shadow: 0 1px 2px #13213e44;
+      letter-spacing: 0.03em;
+    }
+    #startBtn:hover, #startBtn:focus {
+      background: var(--btn-bg-hover);
+      color: var(--btn-text-hover);
+      box-shadow: 0 2px 8px #009fe077;
+    }
+    /* Orig: Webcam below info
+       Now: Align webcam and info side by side in a flex row */
+    #scanner-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 22px;
+      width: 100%;
+      max-width: 470px;
+      margin: 0 auto;
+    }
+    #webcam-area {
+      position: relative;
+      width: 224px;
+      height: 224px;
+      display: inline-block;
+      border-radius: var(--border-radius);
+      background: #11171e;
+      box-shadow: 0 2px 8px #111c;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    #webcam-area canvas {
+      border-radius: var(--border-radius);
+      background: #11171e;
+      box-shadow: none;
+      border: none;
+      width: 224px !important;
+      height: 224px !important;
+      display: block;
+    }
+    #overlay-square {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 2.5px dashed var(--overlay-square);
+      box-sizing: border-box;
+      border-radius: 10px;
+      pointer-events: none;
+      width: 150px;
+      height: 150px;
+      z-index: 5;
+      mix-blend-mode: lighten;
+      opacity: 0.78;
+      box-shadow: 0 0 9px 2px #21c9e955;
+      transition: border 0.2s;
+    }
+    #info {
+      margin: 0;
+      margin-left: 0;
+      min-width: 170px;
+      max-width: 220px;
+      width: 100%;
+      text-align: left;
+      align-self: stretch;
+      padding: 12px 14px 10px 14px;
+      border: 1.5px solid var(--info-border);
+      border-radius: var(--border-radius);
+      background: var(--info-bg);
+      color: var(--text-secondary);
+      font-size: 0.98em;
+      box-sizing: border-box;
+      word-break: break-word;
+      box-shadow: 0 1.5px 8px #151e2a33;
+      line-height: 1.48;
+      letter-spacing: 0.012em;
+      min-height: 62px;
+    }
+    strong {
+      color: #6de4e2;
+      font-weight: 600;
+      font-size: 1.04em;
+    }
+    em {
+      color: #91a1db;
+      font-style: normal;
+      font-size: 0.97em;
+    }
+    @media (max-width: 930px) {
+      body { flex-direction: column; padding: 7vw 1vw;}
+      #sidebar { width: 99vw; min-width: unset; margin-bottom: 14px; }
+      #main {max-width: 98vw;}
+      #scanner-row {
+        flex-direction: column;
+        align-items: center;
+        max-width: 98vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <h3>Supported Animals</h3>
+    <ul>
+      <li>Cat</li>
+      <li>Dog</li>
+      <li>Bird</li>
+      <li>Elephant</li>
+      <li>Horse</li>
+      <li>Eagle</li>
+      <li>Rabbit</li>
+      <li>Frog</li>
+    </ul>
+  </div>
+
+  <div id="main">
+    <h1>🐾 Animal Dictionary<br>Scanner</h1>
+    <button id="startBtn">Start Scanner</button>
+    <div id="scanner-row">
+      <div id="webcam-area">
+        <div id="webcam"></div>
+        <div id="overlay-square" title="Position animal inside this square"></div>
+      </div>
+      <div id="info">Click "Start Scanner" to begin.</div>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", function() {
+      if (!window.tmImage) {
+        document.getElementById("info").textContent = "Failed to load Teachable Machine library.";
+        document.getElementById("startBtn").disabled = true;
+        return;
+      }
+
+      const URL = "./";
+      let model, webcam;
+      let animationFrameId = null;
+
+      const animalDescriptions = {
+        "Cat": { name: "Cat", scientific: "Felis catus", class: "Mammal", diet: "Carnivore", habitat: "Domesticated, urban and rural homes", description: "Cats are small, furry mammals known for agility, independence, and sharp hunting instincts." },
+        "Dog": { name: "Dog", scientific: "Canis lupus familiaris", class: "Mammal", diet: "Omnivore", habitat: "Domesticated, urban and rural homes", description: "Dogs are loyal and intelligent animals that have been companions and workers to humans for thousands of years." },
+        "Bird": { name: "Bird", scientific: "Aves", class: "Bird", diet: "Omnivore (varies by species)", habitat: "Forests, cities, wetlands, mountains", description: "Birds are warm-blooded, feathered animals that lay eggs and are often capable of flight." },
+        "Elephant": { name: "Elephant", scientific: "Loxodonta africana / Elephas maximus", class: "Mammal", diet: "Herbivore", habitat: "Savannahs, forests, grasslands", description: "Elephants are the largest land animals, known for intelligence, memory, and their versatile trunk." },
+        "Horse": { name: "Horse", scientific: "Equus ferus caballus", class: "Mammal", diet: "Herbivore", habitat: "Grasslands, domesticated environments", description: "Horses are strong, social animals used for riding, racing, and transport throughout history." },
+        "Eagle": { name: "Eagle", scientific: "Accipitridae (family)", class: "Bird", diet: "Carnivore", habitat: "Mountains, forests, open plains", description: "Eagles are large birds of prey with sharp vision, strong talons, and impressive flying skills." },
+        "Rabbit": { name: "Rabbit", scientific: "Oryctolagus cuniculus", class: "Mammal", diet: "Herbivore", habitat: "Grasslands, meadows, forests", description: "Rabbits are small mammals with long ears and powerful hind legs, known for digging burrows." },
+        "Frog": { name: "Frog", scientific: "Anura (order)", class: "Amphibian", diet: "Carnivore (insects, small animals)", habitat: "Wetlands, ponds, forests", description: "Frogs are amphibians that live both on land and in water, known for their leaping and croaking." }
+      };
+
+      async function init() {
+        try {
+          document.getElementById("info").textContent = "Loading model, please wait...";
+          const modelURL = URL + "model.json";
+          const metadataURL = URL + "metadata.json";
+
+          model = await tmImage.load(modelURL, metadataURL);
+          webcam = new tmImage.Webcam(224, 224, true);
+          await webcam.setup();
+          await webcam.play();
+
+          const webcamDiv = document.getElementById("webcam");
+          webcamDiv.innerHTML = '';
+          webcamDiv.appendChild(webcam.canvas);
+          webcam.canvas.style.width = "224px";
+          webcam.canvas.style.height = "224px";
+
+          if (animationFrameId) cancelAnimationFrame(animationFrameId);
+          loop();
+
+        } catch (e) {
+          document.getElementById("info").textContent =
+            "Could not access the webcam or load model. Is your webcam allowed and model files present?";
+          console.error(e);
+        }
+      }
+
+      async function loop() {
+        webcam.update();
+        await predict();
+        animationFrameId = requestAnimationFrame(loop);
+      }
+
+      async function predict() {
+        try {
+          const predictions = await model.predict(webcam.canvas);
+          predictions.sort((a, b) => b.probability - a.probability);
+          const top = predictions[0];
+          const animal = animalDescriptions[top.className];
+
+          if (animal && top.probability > 0.7) {
+            document.getElementById("info").innerHTML = `
+              <strong>${animal.name}</strong> (${(top.probability * 100).toFixed(1)}%)<br>
+              <em>Scientific Name:</em> ${animal.scientific}<br>
+              <em>Class:</em> ${animal.class}<br>
+              <em>Diet:</em> ${animal.diet}<br>
+              <em>Habitat:</em> ${animal.habitat}<br><br>
+              ${animal.description}
+            `;
+          } else if (top.probability > 0.7) {
+            document.getElementById("info").innerHTML = `Unknown animal detected.`;
+          } else {
+            document.getElementById("info").innerHTML = `Not confident enough to identify. Please try again.`;
+          }
+        } catch (e) {
+          document.getElementById("info").textContent = "Prediction error.";
+          console.error(e);
+        }
+      }
+
+      document.getElementById("startBtn").addEventListener("click", init);
+    });
+  </script>
+</body>
+</html>
