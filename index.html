@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -100,7 +102,7 @@
       text-align: center;
       line-height: 140%;
     }
-    #startBtn, #switchCameraBtn {
+    #startBtn {
       border: none;
       outline: none;
       background: var(--btn-bg);
@@ -109,20 +111,20 @@
       font-size: 1rem;
       border-radius: var(--border-radius);
       padding: 9px 30px;
-      margin-bottom: 10px;
+      margin-bottom: 14px;
       margin-top: 6px;
       cursor: pointer;
       transition: background 0.25s, color 0.18s, box-shadow 0.18s;
       box-shadow: 0 1px 2px #13213e44;
       letter-spacing: 0.03em;
-      display: block;
     }
-    #startBtn:hover, #switchCameraBtn:hover,
-    #startBtn:focus, #switchCameraBtn:focus {
+    #startBtn:hover, #startBtn:focus {
       background: var(--btn-bg-hover);
       color: var(--btn-text-hover);
       box-shadow: 0 2px 8px #009fe077;
     }
+    /* Orig: Webcam below info
+       Now: Align webcam and info side by side in a flex row */
     #scanner-row {
       display: flex;
       align-items: flex-start;
@@ -230,7 +232,6 @@
   <div id="main">
     <h1>🐾 Animal Dictionary<br>Scanner</h1>
     <button id="startBtn">Start Scanner</button>
-    <button id="switchCameraBtn">Switch Camera</button>
     <div id="scanner-row">
       <div id="webcam-area">
         <div id="webcam"></div>
@@ -250,7 +251,6 @@
 
       const URL = "./";
       let model, webcam;
-      let usingBackCamera = true;
       let animationFrameId = null;
 
       const animalDescriptions = {
@@ -269,28 +269,26 @@
           document.getElementById("info").textContent = "Loading model, please wait...";
           const modelURL = URL + "model.json";
           const metadataURL = URL + "metadata.json";
+
           model = await tmImage.load(modelURL, metadataURL);
-          await setupWebcam();
+          webcam = new tmImage.Webcam(224, 224, true);
+          await webcam.setup();
+          await webcam.play();
+
+          const webcamDiv = document.getElementById("webcam");
+          webcamDiv.innerHTML = '';
+          webcamDiv.appendChild(webcam.canvas);
+          webcam.canvas.style.width = "224px";
+          webcam.canvas.style.height = "224px";
+
+          if (animationFrameId) cancelAnimationFrame(animationFrameId);
+          loop();
+
         } catch (e) {
-          document.getElementById("info").textContent = "Could not access the webcam or load model.";
+          document.getElementById("info").textContent =
+            "Could not access the webcam or load model. Is your webcam allowed and model files present?";
           console.error(e);
         }
-      }
-
-      async function setupWebcam() {
-        if (webcam) {
-          await webcam.stop();
-        }
-        webcam = new tmImage.Webcam(224, 224, true, usingBackCamera ? "environment" : "user");
-        await webcam.setup();
-        await webcam.play();
-        const webcamDiv = document.getElementById("webcam");
-        webcamDiv.innerHTML = '';
-        webcamDiv.appendChild(webcam.canvas);
-        webcam.canvas.style.width = "224px";
-        webcam.canvas.style.height = "224px";
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        loop();
       }
 
       async function loop() {
@@ -305,6 +303,7 @@
           predictions.sort((a, b) => b.probability - a.probability);
           const top = predictions[0];
           const animal = animalDescriptions[top.className];
+
           if (animal && top.probability > 0.7) {
             document.getElementById("info").innerHTML = `
               <strong>${animal.name}</strong> (${(top.probability * 100).toFixed(1)}%)<br>
@@ -326,10 +325,6 @@
       }
 
       document.getElementById("startBtn").addEventListener("click", init);
-      document.getElementById("switchCameraBtn").addEventListener("click", async () => {
-        usingBackCamera = !usingBackCamera;
-        await setupWebcam();
-      });
     });
   </script>
 </body>
