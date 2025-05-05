@@ -271,7 +271,8 @@
           const metadataURL = URL + "metadata.json";
 
           model = await tmImage.load(modelURL, metadataURL);
-          webcam = new tmImage.Webcam(224, 224, true);
+         webcam = new tmImage.Webcam(224, 224, true, false, { facingMode: { exact: "environment" } }); // webcam = new tmImage.Webcam(224, 224, true);
+        
           await webcam.setup();
           await webcam.play();
 
