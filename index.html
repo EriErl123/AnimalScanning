@@ -304,7 +304,7 @@
           const top = predictions[0];
           const animal = animalDescriptions[top.className];
 
-          if (animal && top.probability > 0.7s) {
+          if (animal && top.probability > 0.7) {
             document.getElementById("info").innerHTML = `
               <strong>${animal.name}</strong> (${(top.probability * 100).toFixed(1)}%)<br>
               <em>Scientific Name:</em> ${animal.scientific}<br>
